@@ -1,0 +1,45 @@
+# Source files & Development code
+src/
+*.ts
+*.tsx
+tsconfig.json
+
+# Environment variables & Secrets
+.env
+.env.*
+*.local
+
+# Dependencies & Lock files (usually ignored, npm handles this via package.json)
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Logs & Debug files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+*.test.js
+*.spec.js
+database/
+test/
+# IDE & Editor specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Documentation & Configs not needed in production package
+.gitignore
+.github/
+LICENSE
