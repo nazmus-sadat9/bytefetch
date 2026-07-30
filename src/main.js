@@ -160,8 +160,9 @@ async function sizeOfFile(files){
     }
 
   }
-  console.log(fileSize)
-  calculation(fileSize);
+
+  const calculatedSize = calculation(fileSize);
+  console.log(calculatedSize);
 
 }
 
@@ -173,33 +174,39 @@ function calculation(bits) {
   for (let i = 0; i < bits.length; i++) {
     let size = bits[i];
 
-    if (size < 8192) {
-      // bit
-      let bit = `${size} bit`;
-      console.log(bit);
-      sizeInUnit.push(bit);
+    if (size < 0) {
+      continue;
 
     } else if (size >= 8 && size < 8192) {
       // byte
-      let byte = `${(size / 8)}`;
+      let byte = `${(size / 8).toFixed(2)} byte`;
       sizeInUnit.push(byte);
+
+    } else if (size < 8) {
+      // bit
+      let bit = `${(size)} bit`;
+      sizeInUnit.push(bit);
 
     } else if (size >= 8192 && size < 8388608) { 
       // kilobyte
-      let kb = `${(size / 8192)} kb`;
+      let kb = `${(size / 8192).toFixed(2)} kb`;
       console.log(kb)
       sizeInUnit.push(kb);
 
     } else if (size >= 8388608 && size < 8589934592) { 
       // megabyte
-      let mb = `${(size / 8388608)} mb`;
+      let mb = `${(size / 8388608).toFixed(2)} mb`;
       sizeInUnit.push(mb);
       
+    } else {
+      // gb 
+      let gb = `${(size / 8589934592).toFixed(2)} gb`;
+      sizeInUnit.push(gb);
     }
     
   }
 
-  console.log(sizeInUnit);
+  return sizeInUnit;
 }
 
 
