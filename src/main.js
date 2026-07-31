@@ -1,12 +1,17 @@
 #!/usr/bin/env node 
 
+import fs from "fs/promises";
 import path from "path";
 import { exec } from "child_process";
 import util from "util";
 import packageJson from "../package.json" with {type: "json"};
 import helper from "./helper/helper.js";
+import color from "./helper/color.js";
+import EXT_MAP from "./helper/extentions.js";
 
 const execPromise = util.promisify(exec);
+
+let startTime = new Date();
 
 function start() {
   const args = process.argv;
@@ -19,22 +24,26 @@ function start() {
 
   switch (input) {
     case "-r":
+    case "--run":
       allFiles(input);
       break;
 
-    case "-v" || "--version":
-      console.log(`v${packageJson.version}`);
+    case "-v":
+    case "--version":
+      console.log(`${color.bold}v${packageJson.version}`);
+      break;
 
     case "--help":
       helper();
       break;
 
-    case "-u" || "--update":
-      updatePkg();
+    case "-u":
+    case "--update":
+      updatePkg(packageJson.name);
       break;
 
     default:
-      console.error("FlagError: unaccepted flag! use --help");
+      console.error(`FlagError: unaccepted flag! use --help`);
       break;
   }
   
@@ -42,11 +51,11 @@ function start() {
 
 start();
 
-function updatePkg(update) {
+function updatePkg(pkg) {
 
   console.log("Updating...");
 
-  exec(`npm install ${packageJson.name}`, (error, stdout, stderr)=>{
+  exec(`npm install ${pkg}`, (error, stdout, stderr)=>{
     if (error) {
       console.log(`Update failed: ${error.message}`);
       process.exit(1);
@@ -78,97 +87,45 @@ function allFiles() {
 
     const files = stdout.split('\n').filter(Boolean);
 
-    findLanguages(files);
+    getStats(files);
 
   });
 }
 
-function findLanguages(files) {
-
-  const fileName = [];
-  const currentFile = [];
+async function getStats(files){
+  const stats = {};
 
   for (const file of files) {
-    
-    if (path.extname(file) === ".js") {
-      fileName.push("Javascript");
-      currentFile.push(file);
 
-    } else if (path.extname(file) === ".c"){
-      fileName.push("C");
-      currentFile.push(file);
+    const ext = path.extname(file);
+    const lang = EXT_MAP[ext];
 
-    } else if (path.extname(file) === ".sh") {
-      fileName.push("Bash");
-      currentFile.push(file);
-      
-    } else if (path.extname(file) === ".py") {
-      fileName.push("Python");
-      currentFile.push(file);
-      
-    } else if (path.extname(file) === ".kt") {
-      fileName.push("Kotlin");
-      currentFile.push(file);
-      
-    } else if (path.extname(file) === ".cc" || path.extname(file) === ".cpp") {
-      fileName.push("C++");
-      currentFile.push(file);
-      
-    } else if (path.extname(file) === ".html") {
-      fileName.push("Html");
-      currentFile.push(file);
-      
-    } else if (path.extname(file) === ".css") {
-      fileName.push("Css");
-      currentFile.push(file); 
-      
-    } else if (path.extname(file) === ".rs") {
-      fileName.push("Rust");
-      currentFile.push(file);
-      
-    } else if (path.extname(file) === ".lua") {
-      fileName.push("Lua");
-      currentFile.push(file);
-      
-    } 
-    else {
-      console.log(`skip the file: ${file}`);
+    if (!lang){
       continue;
     }
 
-  }
-
-  console.log(fileName)
-
-  sizeOfFile(currentFile);
-}
-
-async function sizeOfFile(files){
-  
-  let fileSize = [];
-
-  for (let file of files) {
-
     try {
-      const { stdout } = await execPromise(`wc -c < ${file}`);
+      const { size } = await fs.stat(file); // byte 
 
-      const bits = parseInt(stdout.trim(), 10);
-      fileSize.push(bits);
-    } catch (err) {
-      console.error(`file error ${file}`);
-      
+      if (!stats[lang]){ 
+        stats[lang] = { lang, totalSize: 0 }
+      }
+
+      stats[lang].totalSize += size;
+
+    } catch (e) {
+      console.error(`Could not read ${file}`);
     }
-
   }
+  console.log("Sizes in byte");
+  console.log(stats);
 
-  const calculatedSize = calculation(fileSize);
-  console.log(calculatedSize);
-
+  return Object.values(stats);
 }
 
 
 function calculation(bits) {
-  
+
   let sizeInUnit = [];
 
   for (let i = 0; i < bits.length; i++) {
@@ -190,7 +147,6 @@ function calculation(bits) {
     } else if (size >= 8192 && size < 8388608) { 
       // kilobyte
       let kb = `${(size / 8192).toFixed(2)} kb`;
-      console.log(kb)
       sizeInUnit.push(kb);
 
     } else if (size >= 8388608 && size < 8589934592) { 
@@ -210,3 +166,6 @@ function calculation(bits) {
 }
 
 
+let endTime = new Date();
+
+console.log(`Done in ${endTime - startTime} ms`);
