@@ -13,12 +13,14 @@ const execPromise = util.promisify(exec);
 
 let startTime = new Date();
 
+const args = process.argv;
+const input = args[2];
+const sizeUnit = args[3];
+
 function start() {
-  const args = process.argv;
-  const input = args[2];
 
   if (!input) {
-    console.error("FlagError: unaccepted flag! use --help.");
+    console.error(`${color.gray}FlagError: unaccepted flag! use --help`);
     process.exit();
   }
 
@@ -43,10 +45,32 @@ function start() {
       break;
 
     default:
-      console.error(`FlagError: unaccepted flag! use --help`);
+      console.error(`${color.gray}FlagError: unaccepted flag! use --help`);
       break;
   }
-  
+
+}
+
+function getSizeObj(data) {
+
+  if (!sizeUnit) {
+    sizeInByte(data);
+    percents(data);
+
+  }
+
+  switch (sizeUnit) {
+    case "-kb":
+      sizeInKb(data);
+      percents(data);
+      break;
+    
+    case "-mb":
+      sizeInMb(data);
+      percents(data);
+      break;
+
+  }
 }
 
 start();
@@ -57,7 +81,7 @@ function updatePkg(pkg) {
 
   exec(`npm install ${pkg}`, (error, stdout, stderr)=>{
     if (error) {
-      console.log(`Update failed: ${error.message}`);
+      console.log(`${color.gray}Update failed: ${error.message}`);
       process.exit(1);
     }
 
@@ -76,12 +100,12 @@ function allFiles() {
   exec("find . -type f", (error, stdout, stderr)=>{
     
     if (error) {
-      console.error(`error executing command ${error.message}`);
+      console.error(`${color.gray}error executing command ${error.message}`);
       return;
     }
 
     if (stderr) {
-      console.log(`stderr ${stderr}`);
+      console.log(`${color.gray}stderr ${stderr}`);
       return;
     }
 
@@ -114,57 +138,85 @@ async function getStats(files){
       stats[lang].totalSize += size;
 
     } catch (e) {
-      console.error(`Could not read ${file}`);
+      console.error(`${color.gray}Could not read ${file}`);
     }
   }
-  console.log("Sizes in byte");
-  console.log(stats);
+  
+  getSizeObj(stats);
 
   return Object.values(stats);
 }
 
 
-function calculation(bits) {
+// size in byte format  (default)
+function sizeInByte(data){
 
-  let sizeInUnit = [];
+  let totalByte = 0;
 
-  for (let i = 0; i < bits.length; i++) {
-    let size = bits[i];
+  for (let [key, value] of Object.entries(data)) {
 
-    if (size < 0) {
-      continue;
+    // total size of byte
+    totalByte = totalByte += value.totalSize;
 
-    } else if (size >= 8 && size < 8192) {
-      // byte
-      let byte = `${(size / 8).toFixed(2)} byte`;
-      sizeInUnit.push(byte);
-
-    } else if (size < 8) {
-      // bit
-      let bit = `${(size)} bit`;
-      sizeInUnit.push(bit);
-
-    } else if (size >= 8192 && size < 8388608) { 
-      // kilobyte
-      let kb = `${(size / 8192).toFixed(2)} kb`;
-      sizeInUnit.push(kb);
-
-    } else if (size >= 8388608 && size < 8589934592) { 
-      // megabyte
-      let mb = `${(size / 8388608).toFixed(2)} mb`;
-      sizeInUnit.push(mb);
-      
-    } else {
-      // gb 
-      let gb = `${(size / 8589934592).toFixed(2)} gb`;
-      sizeInUnit.push(gb);
-    }
-    
+    console.log(`${color.brightCyan}${value.lang}: [ ${value.totalSize} byte ]`);
   }
 
-  return sizeInUnit;
+  console.log(`${color.brightYellow}Total: [ ${totalByte} byte ]`);
 }
 
+// size in kb format
+function sizeInKb(data) {
+
+  let totalKb = 0;
+
+  for (let [key, value] of Object.entries(data)) {
+
+    // total size of kb
+    totalKb = totalKb += (value.totalSize / 1024);
+
+    console.log(`${color.brightCyan}${value.lang}: [ ${(value.totalSize / 1024).toFixed(2)} kb ]`);
+  }
+
+  console.log(`${color.brightYellow}Total: [ ${totalKb.toFixed(2)} kb ]`);
+}
+
+// size in mb format
+function sizeInMb(data) {
+
+  let totalMb = 0;
+
+  for (let [key, value] of Object.entries(data)) {
+
+    // total size of mb
+    totalMb = totalMb += (value.totalSize / 1048576);
+
+    console.log(`${color.brightCyan}${value.lang}: [ ${(value.totalSize / 1048576).toFixed(2)} mb ]`);
+  }
+
+  console.log(`${color.brightYellow}Total: [ ${totalMb.toFixed(2)} mb ]`);
+}
+
+// percents of used languages
+function percents(data) {
+
+  let total = 0;
+
+  for (let [key, value] of Object.entries(data)) {
+    total = total += value.totalSize;
+
+  }
+
+  if (total === 0) {
+    return;
+  }
+
+  for (const [key, value] of Object.entries(data)) {
+
+    let percentage = (value.totalSize / total) * 100;
+
+    console.log(`${color.brightGreen}${value.lang}: [ ${percentage.toFixed(2)}% ]`);
+  }
+}
 
 let endTime = new Date();
 
