@@ -8,6 +8,7 @@ const EXT_MAP = {
   ".py": "Python",
   ".rs": "Rust", 
   ".c": "C",
+  ".h": "C",
   ".cpp": "C++", 
   ".cc": "C++", 
   ".cxx": "C++",
