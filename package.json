@@ -1,6 +1,6 @@
 {
   "name": "bytefetch",
-  "version": "0.2.4",
+  "version": "1.0.1",
   "description": "A cli that calculate the project languages distribution percentages and measure the file size.",
   "main": "src/main.js",
   "bin": {
