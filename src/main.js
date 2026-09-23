@@ -1,18 +1,15 @@
-#!/usr/bin/env node 
-
+#!/usr/bin/env node
 import fs from "fs/promises";
 import path from "path";
 import { exec } from "child_process";
-import util from "util";
 import packageJson from "../package.json" with {type: "json"};
 import helper from "./helper/helper.js";
 import color from "./helper/color.js";
 import EXT_MAP from "./helper/extentions.js";
 
-const execPromise = util.promisify(exec);
-
 let startTime = new Date();
 
+// get command line input
 const args = process.argv;
 const input = args[2];
 const sizeUnit = args[3];
@@ -27,7 +24,7 @@ function start() {
   switch (input) {
     case "-r":
     case "--run":
-      allFiles(input);
+      allFiles();
       break;
 
     case "-v":
@@ -56,7 +53,6 @@ function getSizeObj(data) {
   if (!sizeUnit) {
     sizeInByte(data);
     percents(data);
-
   }
 
   switch (sizeUnit) {
@@ -64,12 +60,11 @@ function getSizeObj(data) {
       sizeInKb(data);
       percents(data);
       break;
-    
+
     case "-mb":
       sizeInMb(data);
       percents(data);
       break;
-
   }
 }
 
@@ -79,7 +74,7 @@ function updatePkg(pkg) {
 
   console.log("Updating...");
 
-  exec(`npm install ${pkg}`, (error, stdout, stderr)=>{
+  exec(`npm install ${pkg}`, (error, stdout, stderr) => {
     if (error) {
       console.log(`${color.gray}Update failed: ${error.message}`);
       process.exit(1);
@@ -95,28 +90,48 @@ function updatePkg(pkg) {
   });
 }
 
+// recursively find the files
+async function walk(dir, files = []) {
+  let entries;
 
-function allFiles() {
-  exec("find . -type f", (error, stdout, stderr)=>{
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch (e) {
+    console.error(`${color.gray}Could not read directory ${dir}: ${e.message}`);
+    return files;
+  }
+
+  for (const entry of entries) {
     
-    if (error) {
-      console.error(`${color.gray}error executing command ${error.message}`);
-      return;
+    // skip the development files
+    if (entry.isDirectory() && (entry.name === "node_modules" || entry.name === ".git" || entry.name === ".next")) {
+      continue;
     }
 
-    if (stderr) {
-      console.log(`${color.gray}stderr ${stderr}`);
-      return;
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      await walk(fullPath, files);
+    } else if (entry.isFile()) {
+      files.push(fullPath);
     }
+  }
 
-    const files = stdout.split('\n').filter(Boolean);
-
-    getStats(files);
-
-  });
+  return files;
 }
 
-async function getStats(files){
+// entry function
+async function allFiles() {
+  try {
+    const files = await walk(".");
+    await getStats(files);
+  } catch (e) {
+    console.error(`${color.gray}Error scanning directory: ${e.message}`);
+  }
+}
+
+// find the languages
+async function getStats(files) {
   const stats = {};
 
   for (const file of files) {
@@ -124,15 +139,15 @@ async function getStats(files){
     const ext = path.extname(file);
     const lang = EXT_MAP[ext];
 
-    if (!lang){
+    if (!lang) {
       continue;
     }
 
     try {
-      const { size } = await fs.stat(file); // byte 
+      const { size } = await fs.stat(file); // byte
 
-      if (!stats[lang]){ 
-        stats[lang] = { lang, totalSize: 0 }
+      if (!stats[lang]) {
+        stats[lang] = { lang, totalSize: 0 };
       }
 
       stats[lang].totalSize += size;
@@ -141,23 +156,19 @@ async function getStats(files){
       console.error(`${color.gray}Could not read ${file}`);
     }
   }
-  
+
   getSizeObj(stats);
 
   return Object.values(stats);
 }
 
-
-// size in byte format  (default)
-function sizeInByte(data){
+// size in byte format (default)
+function sizeInByte(data) {
 
   let totalByte = 0;
 
   for (let [key, value] of Object.entries(data)) {
-
-    // total size of byte
     totalByte = totalByte += value.totalSize;
-
     console.log(`${color.brightCyan}${value.lang}: [ ${value.totalSize} byte ]`);
   }
 
@@ -170,10 +181,7 @@ function sizeInKb(data) {
   let totalKb = 0;
 
   for (let [key, value] of Object.entries(data)) {
-
-    // total size of kb
     totalKb = totalKb += (value.totalSize / 1024);
-
     console.log(`${color.brightCyan}${value.lang}: [ ${(value.totalSize / 1024).toFixed(2)} kb ]`);
   }
 
@@ -186,10 +194,7 @@ function sizeInMb(data) {
   let totalMb = 0;
 
   for (let [key, value] of Object.entries(data)) {
-
-    // total size of mb
     totalMb = totalMb += (value.totalSize / 1048576);
-
     console.log(`${color.brightCyan}${value.lang}: [ ${(value.totalSize / 1048576).toFixed(2)} mb ]`);
   }
 
@@ -203,7 +208,6 @@ function percents(data) {
 
   for (let [key, value] of Object.entries(data)) {
     total = total += value.totalSize;
-
   }
 
   if (total === 0) {
@@ -211,13 +215,8 @@ function percents(data) {
   }
 
   for (const [key, value] of Object.entries(data)) {
-
     let percentage = (value.totalSize / total) * 100;
-
     console.log(`${color.brightGreen}${value.lang}: [ ${percentage.toFixed(2)}% ]`);
   }
 }
 
-let endTime = new Date();
-
-console.log(`Done in ${endTime - startTime} ms`);
