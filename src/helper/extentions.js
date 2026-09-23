@@ -12,6 +12,7 @@ const EXT_MAP = {
   ".cpp": "C++", 
   ".cc": "C++", 
   ".cxx": "C++",
+  ".hpp": "C++",
   ".sh": "Bash", 
   ".kt": "Kotlin", 
   ".html": "Html",
@@ -22,7 +23,11 @@ const EXT_MAP = {
   ".php": "Php",
   ".go": "Go",
   ".rb": "Ruby",
-  ".swift": "Swift"
+  ".swift": "Swift",
+  ".toml": "Markdown",
+  ".yaml": "Markdown",
+  ".md": "Markdown",
+  ".json": "JSON"
 };
 
 export default EXT_MAP;
