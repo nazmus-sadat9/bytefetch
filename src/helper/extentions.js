@@ -22,8 +22,7 @@ const EXT_MAP = {
   ".php": "Php",
   ".go": "Go",
   ".rb": "Ruby",
-  ".swift": "Swift",
-  ".pn": "Pinum"
+  ".swift": "Swift"
 };
 
 export default EXT_MAP;
